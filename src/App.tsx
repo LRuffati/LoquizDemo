@@ -1,4 +1,4 @@
-import { Component, createResource, For } from 'solid-js';
+import { Component, createRenderEffect, createResource, createSignal, For } from 'solid-js';
 
 import logo from './logo.svg';
 import styles from './App.module.css';
@@ -30,7 +30,7 @@ class TeamInfo {
 }
 
 async function fetch_game(): Promise<GameInfo> {
-  console.log("Fetching game info")
+  //console.log("Fetching game info")
   let key = window.localStorage.getItem('auth_key');
   let game = window.localStorage.getItem('game');
   return get_game_info(key, game).then(
@@ -46,7 +46,7 @@ async function fetch_game(): Promise<GameInfo> {
 }
 
 async function fetch_teams(): Promise<Array<TeamInfo>> {
-  console.log("Fetching teams")
+  //console.log("Fetching teams")
   let key = window.localStorage.getItem('auth_key');
   let game = window.localStorage.getItem('game');
   return get_teams(key, game).then(
@@ -74,6 +74,10 @@ const App: Component = () => {
   const [game_get, {mutate, refetch: redo_game}] = createResource<GameInfo>(fetch_game);
   const [teams_get, {refetch: refetch_teams}] = createResource<Array<TeamInfo>>(fetch_teams);
 
+  const [sort_get, sort_set] = createSignal("Totals");
+
+  let filter;
+
   setInterval(() => redo_game(), 0.5*60*1000);
   setInterval(() => refetch_teams(), 1*1000);
 
@@ -82,20 +86,52 @@ const App: Component = () => {
     0: {"background-color": '#d5dbdb'},
   }
 
+  const sorters = {
+    "Totals": (a: TeamInfo, b: TeamInfo) => {return b.totalS - a.totalS},
+    "Name": (a: TeamInfo, b: TeamInfo) => {
+      if (a<b){
+        return -1;
+      } else if (a==b) {
+        return 0;
+      } else {
+        return 1;
+      }
+    },
+    "Odometer": (a: TeamInfo, b: TeamInfo) => {return b.odometer - a.odometer},
+    "Time": (a: TeamInfo, b: TeamInfo) => {return b.duration - a.duration},
+  }
+
+
+  const [filter_val, set_filterv] = createSignal("");
+
+  function model(el, value) {
+    const [field, setField] = value();
+    createRenderEffect(() => (el.value = field()));
+    el.addEventListener("input", (e) => setField(e.target.value));
+  }
+
   return (
-    <div class='game_cont'><h1 class='game_name'>{game_get()?.name}</h1>
-        <For each={teams_get()?.sort(
-          (a: TeamInfo, b: TeamInfo) => {return b.totalS - a.totalS}
-        )} fallback={<p>Loading teams ...</p>}>
-          {(item: TeamInfo, index) => {
-              return <div class='team_cont' style={styles_team[index() % 2]}> 
-                  <div class='team_name' style={{"background-color": item.color}}>{item.name}</div>
-                  <div class='team_odo'>Odometer: {item.odometer}</div>
-                  <div class='team_tot'>Total score: {item.totalS}</div>
-                  <div class='team_dur'>Game duration: {item.duration}</div>
-                </div>
-          }}
-        </For>
+    <div class='game_cont'>
+      <h1 class='game_name'>{game_get()?.name}</h1>
+      <p style={{"margin-left": "10%"}}>Sort <select value={sort_get()} onInput={v => sort_set(v.currentTarget.value)}>
+        <option value="Totals">by total score</option>
+        <option value="Name">by name</option>
+        <option value="Odometer">by odometer</option>
+        <option value="Time">by gametime</option>
+      </select>
+      <br/>
+      Filter names: <input type="text" use:model={[filter_val, set_filterv]} />
+      </p>
+      <For each={teams_get()?.sort(sorters[sort_get()]).filter((v) => v.name.toLowerCase().includes(filter_val().toLowerCase()))} fallback={<p>Loading teams ...</p>}>
+        {(item: TeamInfo, index) => {
+          return <div class='team_cont' style={styles_team[index() % 2]}> 
+              <div class='team_name' style={{"background-color": item.color}}>{item.name}</div>
+              <div class='team_odo'>Odometer: {item.odometer}</div>
+              <div class='team_tot'>Total score: {item.totalS}</div>
+              <div class='team_dur'>Game duration: {item.duration}</div>
+            </div>
+        }}
+      </For>
     </div>
   );
 };
