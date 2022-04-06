@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv=“Content-Security-Policy” content=”connect-src: self api.loquiz.com”>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scoreboard</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script>
+      window.localStorage.setItem('auth_key', "ApiKey-v1 d64642249a14413ac83fdf40b57192b7be1bfb715a3e74519e279b3ee5eaf426");
+      window.localStorage.setItem('game', "FK5TS3QAB");
+    </script>
+
+    <script src="/src/index.tsx" type="module"></script>
+  </body>
+</html>
